@@ -18,7 +18,7 @@ interface YouTubeAPI {
       events: {
         onReady: (event: { target: Player }) => void;
         onStateChange: (event: { data: number }) => void;
-        onError: () => void;
+        onError: (event: { data: number }) => void;
       };
     },
   ) => Player;
@@ -135,8 +135,9 @@ export function YouTubePlayer({
               }
               if (e.data === 0) onEnd();
             },
-            onError: () => {
-              if (!disposed) onError("YouTube could not play this item");
+            onError: (event) => {
+              if (!disposed)
+                onError(`YouTube could not play this item (${event.data})`);
             },
           },
         });

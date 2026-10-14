@@ -4,6 +4,16 @@ import type { PublishedScreen } from "../types/screenConfig";
 import { hydrateAssets } from "../admin/services/assetService";
 import { apiEnabled, apiRequest } from "../admin/services/apiClient";
 import { readDatabase } from "../admin/services/mockStore";
+
+function newestPublishedScreen(rows: { data: PublishedScreen }[]) {
+  return rows
+    .map((row) => row.data)
+    .sort(
+      (a, b) =>
+        Date.parse(b.publishedAt || "") - Date.parse(a.publishedAt || ""),
+    )[0];
+}
+
 export function useScreenConfiguration() {
   const [configuration, setConfiguration] = useState<PublishedScreen | null>(
     null,
@@ -12,7 +22,7 @@ export function useScreenConfiguration() {
     const params = new URLSearchParams(location.search);
     const preview = params.get("preview");
     const screen = params.get("screen");
-    if (!preview && !screen) return;
+    if (!preview && !screen && !supabase) return;
     let active = true;
     let last = "";
     const load = async () => {
@@ -22,15 +32,26 @@ export function useScreenConfiguration() {
               localStorage.getItem(`mercury-preview:${preview}`) || "null",
             )
           : supabase
-            ? await supabase
-                .from("published_screens")
-                .select("data")
-                .eq("id", screen!)
-                .maybeSingle()
-                .then(({ data, error }) => {
-                  if (error) throw error;
-                  return data?.data;
-                })
+            ? screen
+              ? await supabase
+                  .from("published_screens")
+                  .select("data")
+                  .eq("id", screen)
+                  .maybeSingle()
+                  .then(({ data, error }) => {
+                    if (error) throw error;
+                    return data?.data;
+                  })
+              : await supabase
+                  .from("published_screens")
+                  .select("data")
+                  .limit(50)
+                  .then(({ data, error }) => {
+                    if (error) throw error;
+                    return newestPublishedScreen(
+                      (data || []) as { data: PublishedScreen }[],
+                    );
+                  })
             : apiEnabled
               ? await apiRequest<PublishedScreen>(
                   `/api/signage/config?screen=${encodeURIComponent(screen!)}`,
