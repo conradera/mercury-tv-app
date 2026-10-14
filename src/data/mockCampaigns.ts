@@ -15,8 +15,8 @@ export const mockCampaigns: Campaign[] = [
     title: "Power up\nyour",
     accent: "semester.",
     description: "Learn, create and achieve more. All in one place.",
-    image: "/products/laptop-2.png",
-    tags: ["Laptops", "Printers", "Accessories"],
+    image: "/products/desktop.png",
+    tags: ["Laptops", "Desktops", "Accessories"],
   },
   {
     id: "power",
@@ -33,7 +33,7 @@ export const mockCampaigns: Campaign[] = [
     title: "A smarter,\nsafer",
     accent: "business.",
     description: "Enterprise networking and security, built around you.",
-    image: "/products/router.png",
+    image: "/products/camera.png",
     tags: ["Networking", "CCTV", "Cybersecurity"],
   },
 ];

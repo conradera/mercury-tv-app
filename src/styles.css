@@ -603,7 +603,13 @@ body.cursor-hidden * {
   z-index: 5;
   opacity: 0;
   transition: opacity 0.7s;
-  background: #122033;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-layer.ready {
+  opacity: 1;
 }
 .video-layer.ready {
   opacity: 1;
@@ -615,6 +621,7 @@ body.cursor-hidden * {
   height: 100%;
   border: 0;
   pointer-events: none;
+  display: block;
 }
 .ticker {
   margin: 0 1.15vw 0.9vw;
@@ -915,47 +922,30 @@ body.cursor-hidden * {
     transform: none !important;
   }
 }
-/* Product photography sits on a softly lit showroom plinth. */
+/* Product photography — fills the right half of the campaign panel */
 .hero-product {
-  right: 2%;
-  top: 19%;
-  width: 43%;
-  height: auto;
-  aspect-ratio: 1;
-  background: radial-gradient(circle at 40% 30%, #fff, #e6eddd 65%, #b4c2a7);
-  border-radius: 50%;
-  box-shadow: 0 2vw 4vw #0002;
-}
-.hero-product img {
   position: absolute;
-  inset: -4%;
-  width: 108%;
-  height: 108%;
-  mix-blend-mode: multiply;
-  filter: drop-shadow(0 1vw 1vw #0002);
-}
-@media (max-aspect-ratio: 4/3) {
-  .hero-product {
-    width: 66%;
-    height: auto;
-    top: auto;
-    bottom: 13%;
-    right: 1%;
-  }
-}
-.hero-product {
-  width: 36%;
-  right: 4%;
-  top: 9%;
-  overflow: hidden;
+  z-index: 2;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
 }
 .hero-product img {
-  inset: 4%;
-  width: 92%;
-  height: 92%;
+  position: relative;
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  mix-blend-mode: normal;
+  filter: drop-shadow(0 2vw 3vw #0005);
 }
 .campaign-copy {
   padding-top: 2.7vw;
+  width: 52%;
 }
 .campaign h1 {
   font-size: 4.1vw;
@@ -967,13 +957,14 @@ body.cursor-hidden * {
 }
 @media (max-aspect-ratio: 4/3) {
   .hero-product {
-    width: 62%;
-    top: auto;
-    bottom: 12%;
-    right: 3%;
+    width: 60%;
+    top: 45%;
+    bottom: 0;
+    right: 0;
   }
   .campaign-copy {
     padding-top: 5vw;
+    width: 100%;
   }
   .campaign h1 {
     font-size: 5vw;

@@ -32,6 +32,7 @@ export const mockMedia: MediaItem[] = [
     url: "/videos/mercury-promo.webm",
     duration: 25,
     title: "Mercury promotional film",
+    fit: "cover",
   },
   {
     id: "security",
