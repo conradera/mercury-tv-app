@@ -1,3 +1,4 @@
+import { supabaseEnabled } from "../../utils/supabase/client";
 import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
@@ -189,9 +190,11 @@ function GeneralSettings({ tab }: { tab: string }) {
         <div>
           <h2>{tab} settings</h2>
           <p>
-            {tab === "API"
-              ? "The active API adapter is selected with VITE_API_BASE_URL at build time."
-              : "Changes are saved locally. Publish a screen configuration to update TV content."}
+            {supabaseEnabled
+              ? "Changes are saved to your shared workspace. Publish to screens to update TV content."
+              : tab === "API"
+                ? "The active API adapter is selected with VITE_API_BASE_URL at build time."
+                : "Changes are saved locally. Publish a screen configuration to update TV content."}
           </p>
         </div>
         <button
@@ -334,9 +337,9 @@ function GeneralSettings({ tab }: { tab: string }) {
             <>
               <h3>Access and sessions</h3>
               <p>
-                This development workspace uses browser-local sessions that
-                expire after eight hours. Server-enforced authentication is
-                required before deployment.
+                {supabaseEnabled
+                  ? "Sign-in is connected. User roles control access across the workspace."
+                  : "This development workspace uses browser-local sessions that expire after eight hours."}
               </p>
               <Link className="btn" to="/admin/users">
                 Manage users
@@ -345,18 +348,23 @@ function GeneralSettings({ tab }: { tab: string }) {
                 Roles & permissions
               </Link>
               <div className="form-hint">
-                Never treat frontend permission checks as a security boundary.
-                CSRF, rate limits, password resets and token rotation belong in
-                the backend.
+                {supabaseEnabled
+                  ? "Manage accounts, assign roles, or disable access from Users. Passwords are never included in configuration exports."
+                  : "Demo permissions are for preview only."}
               </div>
             </>
           )}
           {tab === "Storage" && (
             <>
-              <h3>Browser media storage</h3>
+              <h3>
+                {supabaseEnabled
+                  ? "Shared media storage"
+                  : "Browser media storage"}
+              </h3>
               <p>
-                Uploads are stored in IndexedDB on this browser. They are not
-                yet shared across devices.
+                {supabaseEnabled
+                  ? "Uploads are saved to shared storage and available to your displays."
+                  : "Uploads are stored in this browser and are not shared across devices."}
               </p>
               <div className="storage-meter">
                 <span style={{ width: "28%" }} />
@@ -400,7 +408,7 @@ function GeneralSettings({ tab }: { tab: string }) {
                 <Download size={15} />
                 Export configuration backup
               </button>
-              {import.meta.env.DEV && (
+              {import.meta.env.DEV && !supabaseEnabled && (
                 <div className="developer-tools">
                   <h3>Development tools</h3>
                   <label className="setting-toggle">

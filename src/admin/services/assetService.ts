@@ -1,3 +1,4 @@
+import { supabase } from "../../utils/supabase/client";
 const urls = new Map<string, string>();
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -8,6 +9,15 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 export async function storeAsset(file: File): Promise<string> {
+  if (supabase) {
+    const path = `${crypto.randomUUID()}.${file.name.split(".").pop()?.toLowerCase() || "bin"}`;
+    const { error } = await supabase.storage
+      .from("signage-media")
+      .upload(path, file, { upsert: false });
+    if (error) throw error;
+    return supabase.storage.from("signage-media").getPublicUrl(path).data
+      .publicUrl;
+  }
   const db = await openDB();
   const id = `asset:${crypto.randomUUID()}`;
   await new Promise<void>((resolve, reject) => {

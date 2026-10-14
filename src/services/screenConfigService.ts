@@ -1,3 +1,4 @@
+import { supabase } from "../utils/supabase/client";
 import { useEffect, useState } from "react";
 import type { PublishedScreen } from "../types/screenConfig";
 import { hydrateAssets } from "../admin/services/assetService";
@@ -20,11 +21,21 @@ export function useScreenConfiguration() {
           ? JSON.parse(
               localStorage.getItem(`mercury-preview:${preview}`) || "null",
             )
-          : apiEnabled
-            ? await apiRequest<PublishedScreen>(
-                `/api/signage/config?screen=${encodeURIComponent(screen!)}`,
-              )
-            : readDatabase().published[screen!];
+          : supabase
+            ? await supabase
+                .from("published_screens")
+                .select("data")
+                .eq("id", screen!)
+                .maybeSingle()
+                .then(({ data, error }) => {
+                  if (error) throw error;
+                  return data?.data;
+                })
+            : apiEnabled
+              ? await apiRequest<PublishedScreen>(
+                  `/api/signage/config?screen=${encodeURIComponent(screen!)}`,
+                )
+              : readDatabase().published[screen!];
         if (!raw) return;
         const serialized = JSON.stringify(raw);
         if (serialized === last) return;

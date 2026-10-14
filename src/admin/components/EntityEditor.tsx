@@ -1,3 +1,5 @@
+import { websiteFields } from "../../services/websiteProductService";
+import { supabaseEnabled } from "../../utils/supabase/client";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,7 +26,15 @@ export function EntityEditor({
   const [closePending, setClosePending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const sections = editorSections(collection, db);
+  const websiteProduct = entity.source === "mercury-website";
+  const sections = editorSections(collection, db)
+    .map((section) => ({
+      ...section,
+      fields: websiteProduct
+        ? section.fields.filter((field) => !websiteFields.has(field.key))
+        : section.fields,
+    }))
+    .filter((section) => section.fields.length);
   const schema = z.record(z.string(), z.unknown()).superRefine((data, ctx) => {
     const issue = (path: string, message: string) =>
       ctx.addIssue({ code: "custom", path: [path], message });
@@ -38,6 +48,7 @@ export function EntityEditor({
       issue("id", "This ID already exists.");
     if (
       collection === "products" &&
+      !websiteProduct &&
       (!Number.isFinite(Number(data.price)) || Number(data.price) < 0)
     )
       issue("price", "Enter a valid non-negative price.");
@@ -81,6 +92,15 @@ export function EntityEditor({
         issue(key, "Use an HTTP(S) URL, local path, or uploaded asset.");
     if (collection === "users" && !z.email().safeParse(data.email).success)
       issue("email", "Enter a valid email address.");
+    if (collection === "users" && supabaseEnabled) {
+      const existing = db.collections.users.some((u) => u.id === entity.id);
+      if (
+        (!existing || data.password) &&
+        String(data.password || "").length < 8
+      )
+        issue("password", "Use at least 8 characters.");
+      if (!data.roleId) issue("roleId", "Choose a role.");
+    }
     if (collection === "screens" && !/^\d{6}$/.test(String(data.pairingPin)))
       issue("pairingPin", "Use a six-digit pairing PIN.");
     if (collection === "announcements" && !String(data.message || "").trim())
@@ -154,7 +174,11 @@ export function EntityEditor({
           : "Saved successfully",
       );
       if (result) {
-        form.reset(value);
+        form.reset(
+          collection === "users"
+            ? { ...(result as Entity), password: "" }
+            : value,
+        );
         saved = true;
       }
     })();
@@ -205,7 +229,11 @@ export function EntityEditor({
           form.setValue("name", file.name, { shouldDirty: true });
       }
       setProgress(100);
-      toast("File saved to local browser storage");
+      toast(
+        supabaseEnabled
+          ? "File uploaded to Supabase"
+          : "File saved to local browser storage",
+      );
     } catch (error) {
       toast(String(error), true);
     } finally {
@@ -388,7 +416,11 @@ export function EntityEditor({
     <>
       <Modal
         title={`${db.collections[collection].some((r) => r.id === entity.id) ? "Edit" : "Add"} ${collection === "media" ? "media asset" : collection.replace(/ies$/, "y").replace(/s$/, "")}`}
-        description="Save your work as a draft. Published TV snapshots stay unchanged until you publish to screens."
+        description={
+          websiteProduct
+            ? "Product details and USD prices come from the Mercury website. Edit signage settings here, then publish to your screens."
+            : "Save your work as a draft. Published TV snapshots stay unchanged until you publish to screens."
+        }
         onClose={close}
         wide
       >

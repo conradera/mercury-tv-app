@@ -1,3 +1,4 @@
+import { supabaseEnabled, demoEnabled } from "../../utils/supabase/client";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -142,8 +143,9 @@ export function LoginPage() {
             )}
             {forgot && (
               <div className="form-hint">
-                Password recovery is not connected in this frontend demo. Use
-                the development credentials below.
+                {supabaseEnabled
+                  ? "Contact your workspace administrator to reset your password."
+                  : "Use the development credentials below."}
               </div>
             )}
             <button
@@ -154,16 +156,18 @@ export function LoginPage() {
               <ArrowRight size={17} />
             </button>
           </form>
-          <div className="demo-credentials">
-            <ShieldCheck size={20} />
-            <div>
-              <b>Development workspace</b>
-              <span>
-                admin@mercury.local <i> / </i> admin123
-              </span>
-              <small>Mock authentication · not for production security</small>
+          {demoEnabled && (
+            <div className="demo-credentials">
+              <ShieldCheck size={20} />
+              <div>
+                <b>Development workspace</b>
+                <span>
+                  admin@mercury.local <i> / </i> admin123
+                </span>
+                <small>Mock authentication · not for production security</small>
+              </div>
             </div>
-          </div>
+          )}
         </div>
         <small className="login-footnote">
           Technology. Business. Connected.

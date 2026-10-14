@@ -1,3 +1,4 @@
+import { websiteProductsEnabled } from "../../services/websiteProductService";
 import { collectionColumns } from "../components/collectionColumns";
 import { useRef, useState, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -395,7 +396,11 @@ export function CollectionPage({ collection }: { collection: Collection }) {
       <PageHeading
         eyebrow="CONTENT LIBRARY"
         title={meta.title}
-        description={meta.description}
+        description={
+          collection === "products" && websiteProductsEnabled
+            ? "Live Mercury website catalog · USD prices · refreshed every minute. Edit display settings here; manage product details on the website."
+            : meta.description
+        }
         actions={
           <>
             <button

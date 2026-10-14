@@ -1,0 +1,10 @@
+project_id = "mercury-tv"
+
+[functions.admin-users]
+# The handler validates the access token with auth.getUser and checks the live
+# workspace role. This supports projects using asymmetric JWT signing keys.
+verify_jwt = false
+
+[functions.mercury-products]
+# Public, read-only catalog for TVs; only published product fields are exposed.
+verify_jwt = false

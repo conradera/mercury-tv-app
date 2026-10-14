@@ -1109,10 +1109,10 @@ body.cursor-hidden * {
   overflow-wrap: anywhere;
 }
 
-/* Mercury's blue-and-white TV presentation. */
+/* Mercury's orange-and-white TV presentation. */
 .signage.mercury-blue-white {
   --lime: #fff;
-  --navy: #2596be;
+  --navy: #eb6228;
   --muted: #000;
   background: #fff;
   color: #000;
@@ -1122,7 +1122,7 @@ body.cursor-hidden * {
 .mercury-blue-white .ticker {
   background: #fff;
   color: #000;
-  border-color: #2596be;
+  border-color: #eb6228;
 }
 .mercury-blue-white
   .header
@@ -1153,9 +1153,9 @@ body.cursor-hidden * {
   color: #000;
 }
 .mercury-blue-white .pill {
-  background: #2596be;
+  background: #eb6228;
   color: #fff;
-  border-color: #2596be;
+  border-color: #eb6228;
 }
 .mercury-blue-white .featured-image {
   background: #fff;
@@ -1164,20 +1164,20 @@ body.cursor-hidden * {
   background: none;
 }
 .mercury-blue-white .dots button {
-  background: #d9edf5;
+  background: #f8d8ca;
 }
 .mercury-blue-white .dots button.active,
 .mercury-blue-white .live-dot {
-  background: #2596be;
+  background: #eb6228;
 }
 .mercury-blue-white .media-panel,
 .mercury-blue-white .media-bottomline,
 .mercury-blue-white .video-layer {
-  background: #2596be;
+  background: #eb6228;
   color: #fff;
 }
 .mercury-blue-white .campaign {
-  background: #2596be !important;
+  background: #eb6228 !important;
   color: #fff !important;
 }
 .mercury-blue-white
@@ -1207,14 +1207,14 @@ body.cursor-hidden * {
   background: #fff;
 }
 .mercury-blue-white .ticker-label {
-  background: #2596be;
+  background: #eb6228;
   color: #fff;
 }
 .mercury-blue-white .ticker-label :is(span, strong, strong span, svg) {
   color: #fff;
 }
 .mercury-blue-white .info-strip {
-  background: #2596be;
+  background: #eb6228;
   color: #fff;
 }
 .mercury-blue-white .info-strip :is(svg, .announcement) {
@@ -1233,4 +1233,16 @@ body.cursor-hidden * {
 }
 .mercury-blue-white .ticker .ticker-label :is(span, strong, strong span, svg) {
   color: #fff;
+}
+
+.catalog-status {
+  position: fixed;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  z-index: 80;
+  padding: 0.35rem 0.6rem;
+  background: #172334;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
 }

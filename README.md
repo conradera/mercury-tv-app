@@ -1,6 +1,6 @@
 # Mercury Showroom TV
 
-Frontend-only digital signage for Mercury Computers Limited. React, TypeScript, Vite, Tailwind CSS, Framer Motion and Lucide. No backend or admin dashboard.
+Digital signage and admin dashboard for Mercury Computers Limited. React, TypeScript and Vite, with Supabase Auth, Postgres and Storage.
 
 ## Run locally
 
@@ -13,6 +13,45 @@ npm run dev
 ```
 
 Open http://localhost:5173. The display starts automatically after a 1.8-second brand intro. Build with `npm run build`; serve the production build with `npm run preview`. Serve `dist/` on a static web server; do not open index.html as a file.
+
+## Supabase admin
+
+Open `/admin` and sign in with your workspace account. The initial owner is `knl.conrad@gmail.com`; passwords are managed in Supabase Auth and are never stored in application tables or committed files.
+
+`.env.local` must contain `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (see `.env.example`). Restart Vite after changing environment variables. Never put a service-role or secret key in a `VITE_*` variable. The connected project is `snqkswwvldfzffpnoeos`.
+
+Go to **Users → Add user**, enter a name, email, password and role, then save. This creates a real confirmed Supabase Auth account through `supabase/functions/admin-users`, with authorization checked against the caller's current database role. Leave the password blank when editing to retain it. Disabling a user blocks login and database access. The owner account and owner role cannot be removed or demoted.
+
+Application tables: products, categories, media, campaigns, playlists, screens, groups, branches, schedules, announcements, users, roles, themes, layouts, settings, activity_logs, notifications, versions, published_screens and ready_records, plus screen_commands. Content tables store versioned entity JSON; users have typed columns and foreign keys to Auth and roles. All 21 application tables use RLS. The separate `website_catalog_cache` table is private to the Edge Function and also uses RLS. Only published screen snapshots are anonymously readable. The public `signage-media` bucket is for customer-facing display assets.
+
+Database migrations are in `supabase/migrations`; `supabase/seed.sql` contains default roles, categories, themes, layouts and company settings. No sample user accounts or fake device records are inserted into the connected workspace. The user-management Edge Function validates JWTs via `auth.getUser` and checks live role permissions before using the server-only service credential.
+
+Publishing saves screen snapshots to Supabase. Displays with `?screen=<screen-id>` poll them every 30 seconds; admin pages also refresh every 30 seconds. Hardware pairing, command execution and device telemetry still require a device agent; queued commands are not proof that hardware executed them. Analytics remain labeled as simulated.
+
+For local demo mode and the original regression suite, start Vite with `VITE_DEMO_MODE=true`. Without this flag, configured Supabase credentials take priority over the older HTTP adapter, and missing connection settings cannot silently enable demo login.
+
+Verification (set `MERCURY_ADMIN_PASSWORD` in your shell first):
+
+```sh
+node scripts/supabase-verify.mjs
+npx playwright test tests/supabase-admin.spec.ts
+npm run build
+```
+
+The live checks create and delete temporary users. The original `admin.spec.ts` and `signage.spec.ts` tests must target a separate demo-mode server, using `PLAYWRIGHT_BASE_URL` if needed.
+
+## Live website products
+
+Production mode reads the complete Mercury website catalog through the deployed `mercury-products` Edge Function. The function follows every `/v1/products` cursor page, returns only published product fields, and keeps the source prices in USD for administration. The TV renderer converts them to UGX using `VITE_USD_TO_UGX_RATE` (default `4140`). It refreshes its server cache every minute. Displays also cache the last successful response for up to 24 hours and show a stale-data notice during an outage.
+
+The website API key is encrypted in Supabase Vault as `mercury_products_api_key`; it is never sent to the browser or stored in repository files. The public app needs only:
+
+```sh
+VITE_MERCURY_PRODUCTS_URL=https://snqkswwvldfzffpnoeos.supabase.co/functions/v1/mercury-products
+VITE_USD_TO_UGX_RATE=4140
+```
+
+The admin product library combines live website facts with local signage controls. Names, categories, images, specifications, stock status, and prices remain website-owned. Admins can change display visibility, featured placement, priority, schedule, and screen/group assignment, then publish those choices. Website products use stable IDs prefixed with `website:`.
 
 ## TV operation
 
@@ -30,7 +69,7 @@ Click the fullscreen icon in normal mode, or use the browser's fullscreen/kiosk 
 
 - `src/config/signageConfig.ts`: feature/ticker/campaign/transition timing, loading timeouts, clock, contact strip and future API base URL. Media `duration` is in **seconds**; config durations are in **milliseconds**.
 - `src/config/company.ts`: website, optional phone/address, tagline and Africa/Kampala clock timezone.
-- `src/data/mockProducts.ts`: 20 demo products across all requested categories. **Prices, specs, availability and promotions are illustrative, not official offers.** Replace and approve these before showing customers.
+- `src/data/mockProducts.ts`: demo-mode and offline development products. Production mode uses the website catalog and converts its USD prices to UGX on the TV display.
 - `src/data/mockCampaigns.ts`: campaign copy, imagery and announcements.
 - `src/data/mockMedia.ts`: ordered campaign / YouTube / custom video playlist.
 - `src/utils/currency.ts`: shared UGX formatting.
@@ -40,7 +79,7 @@ Click the fullscreen icon in normal mode, or use the browser's fullscreen/kiosk 
 
 The YouTube entry is a Big Buck Bunny **sample**, not a Mercury advertisement; replace it with an approved embeddable video. Playback needs internet access and may be blocked by embedding restrictions, TV browser policies or the network. `rel=0` limits related content but cannot remove all YouTube branding or recommendations.
 
-## Future API replacement
+## Other content APIs
 
 Components consume typed service results, not endpoint details:
 
@@ -52,7 +91,7 @@ getCampaigns();
 getAnnouncements();
 ```
 
-Set `apiBaseUrl` in `signageConfig` (e.g. `https://signage.example.com`, or `window.location.origin` for same-origin APIs). Requests then go through `src/services/contentService.ts`, including `?screen=<screenId>`:
+Website products already use their dedicated Supabase proxy. The older `apiBaseUrl` adapter remains available for media, campaigns, announcements, or a complete custom signage backend. Requests go through `src/services/contentService.ts`, including `?screen=<screenId>`:
 
 | Endpoint                     | JSON response                |
 | ---------------------------- | ---------------------------- |
@@ -61,7 +100,7 @@ Set `apiBaseUrl` in `signageConfig` (e.g. `https://signage.example.com`, or `win
 | `/api/signage/campaigns`     | `{ "campaigns": [...] }`     |
 | `/api/signage/announcements` | `{ "announcements": [...] }` |
 
-Return the interfaces in `src/types/`. Requests time out after eight seconds. Successful responses cache in localStorage per screen; failures use cached content, then bundled mocks. With the API base empty, all services use bundled mocks. Content loads at startup; reload the display to fetch edits. CORS/authentication and live refresh can be added in the service layer later.
+Return the interfaces in `src/types/`. These optional requests time out after eight seconds. Successful responses cache in localStorage per screen; failures use cached content, then bundled mocks. With the API base empty, media, campaigns, and announcements use bundled defaults.
 
 `displayPriority` 1–10 provides bounded repetition of featured products; `displayStart` and `displayEnd` are typed future scheduling fields, not active scheduling rules. No backend scheduling is implemented.
 

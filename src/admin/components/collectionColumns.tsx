@@ -33,7 +33,11 @@ export function collectionColumns(
               {formatCurrency(Number(r.price), String(r.currency))}
               {!!r.promotionalPrice && (
                 <small>
-                  {formatCurrency(Number(r.promotionalPrice))} promo
+                  {formatCurrency(
+                    Number(r.promotionalPrice),
+                    String(r.currency),
+                  )}{" "}
+                  promo
                 </small>
               )}
             </span>

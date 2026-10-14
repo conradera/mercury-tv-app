@@ -3,6 +3,7 @@ export interface Field {
   key: string;
   label: string;
   type?:
+    | "password"
     | "text"
     | "textarea"
     | "number"
@@ -543,6 +544,12 @@ export function editorSections(
         fields: [
           ...common,
           { key: "email", label: "Email address" },
+          {
+            key: "password",
+            label: "Password",
+            type: "password",
+            hint: "Required for new accounts (at least 8 characters). Leave blank to keep an existing password.",
+          },
           {
             key: "roleId",
             label: "Role",

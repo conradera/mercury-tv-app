@@ -11,9 +11,11 @@ export const realtimeService: RealtimeAdapter = {
         id: "local",
         time: new Date().toISOString(),
       });
+    const timer = setInterval(notify, 30000);
     window.addEventListener("storage", notify);
     window.addEventListener("mercury:database", notify);
     return () => {
+      clearInterval(timer);
       window.removeEventListener("storage", notify);
       window.removeEventListener("mercury:database", notify);
     };

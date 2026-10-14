@@ -1,3 +1,8 @@
+import {
+  getWebsiteCatalog,
+  websiteProductsEnabled,
+} from "./services/websiteProductService";
+import type { Product } from "./types/product";
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { company } from "./config/company";
@@ -19,8 +24,58 @@ import { SignageLayout } from "./components/signage/SignageLayout";
 import { useScreenConfiguration } from "./services/screenConfigService";
 import { ConfiguredAppearance } from "./components/signage/ConfiguredAppearance";
 import { ErrorBoundary } from "./components/signage/ErrorBoundary";
+import { convertUsdToUgx, DEFAULT_USD_TO_UGX_RATE } from "./utils/currency";
+
+const configuredUsdToUgxRate = Number(import.meta.env.VITE_USD_TO_UGX_RATE);
+const usdToUgxRate =
+  Number.isFinite(configuredUsdToUgxRate) && configuredUsdToUgxRate > 0
+    ? configuredUsdToUgxRate
+    : DEFAULT_USD_TO_UGX_RATE;
+
+function toDisplayCurrency(product: Product): Product {
+  if (product.currency?.toUpperCase() !== "USD") return product;
+  return {
+    ...product,
+    price: convertUsdToUgx(product.price, usdToUgxRate),
+    promotionalPrice: convertUsdToUgx(product.promotionalPrice, usdToUgxRate),
+    currency: "UGX",
+  };
+}
+
 function Display() {
   const screenConfig = useScreenConfiguration();
+  const [websiteProducts, setWebsiteProducts] = useState<Product[] | null>(
+    null,
+  );
+  const [catalogStatus, setCatalogStatus] = useState("");
+  useEffect(() => {
+    if (!websiteProductsEnabled) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const catalog = await getWebsiteCatalog();
+        if (active) {
+          setWebsiteProducts(catalog.products);
+          setCatalogStatus(
+            catalog.stale
+              ? "Showing last available website prices"
+              : "Live website products · UGX",
+          );
+        }
+      } catch {
+        if (active)
+          setCatalogStatus("Website products unavailable · reconnecting");
+      }
+    };
+    void refresh();
+    const interval = setInterval(refresh, 60000);
+    window.addEventListener("online", refresh);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      window.removeEventListener("online", refresh);
+    };
+  }, []);
   useEffect(() => {
     if (!screenConfig) return;
     Object.assign(company, screenConfig.company);
@@ -50,7 +105,7 @@ function Display() {
     });
   }, [screenConfig]);
   const [content, setContent] = useState({
-    products: mockProducts,
+    products: websiteProductsEnabled ? ([] as Product[]) : mockProducts,
     playlist: mockMedia,
     campaigns: mockCampaigns,
     announcements: mockAnnouncements,
@@ -68,7 +123,38 @@ function Display() {
   const query = new URLSearchParams(location.search);
   const display = query.get("mode") === "display";
   const debug = query.get("debug") === "true";
-  const featured = content.products
+  const products = (
+    websiteProductsEnabled
+      ? screenConfig
+        ? content.products.flatMap((product) => {
+            if (!product.id.startsWith("website:")) return [product];
+            if (!websiteProducts) return [product];
+            const current = websiteProducts.find((p) => p.id === product.id);
+            if (!current) return [];
+            return [
+              {
+                ...product,
+                name: current.name,
+                image: current.image,
+                category: current.category,
+                brand: current.brand,
+                price: (product as Product & { hidePrice?: boolean }).hidePrice
+                  ? undefined
+                  : current.price,
+                promotionalPrice: (product as Product & { hidePrice?: boolean })
+                  .hidePrice
+                  ? undefined
+                  : current.promotionalPrice,
+                currency: current.currency,
+                specifications: current.specifications,
+                availability: current.availability,
+              },
+            ];
+          })
+        : websiteProducts || []
+      : content.products
+  ).map(toDisplayCurrency);
+  const featured = products
     .filter((p) => p.featured)
     .flatMap((p) =>
       Array.from(
@@ -82,15 +168,13 @@ function Display() {
       ),
     );
   const assigned = screenConfig
-    ? content.products.filter((p) =>
-        screenConfig.featuredProducts.includes(p.id),
-      )
+    ? products.filter((p) => screenConfig.featuredProducts.includes(p.id))
     : [];
   const featuredProducts = screenConfig
     ? assigned
     : featured.length
       ? featured
-      : content.products;
+      : products;
   const rotation = useRotation(
     featuredProducts.length,
     screenConfig?.settings.featuredRotation ||
@@ -111,12 +195,14 @@ function Display() {
   useEffect(() => {
     let active = true;
     Promise.all([
-      getProducts(),
+      websiteProductsEnabled ? Promise.resolve([] as Product[]) : getProducts(),
       getMediaPlaylist(),
       getCampaigns(),
       getAnnouncements(),
     ]).then(([products, playlist, campaigns, announcements]) => {
-      if (active) setContent({ products, playlist, campaigns, announcements });
+      const params = new URLSearchParams(location.search);
+      if (active && !params.get("screen") && !params.get("preview"))
+        setContent({ products, playlist, campaigns, announcements });
     });
     const timer = setTimeout(
       () => setBooting(false),
@@ -184,8 +270,8 @@ function Display() {
     };
   }, [display]);
   const tickerProducts = screenConfig
-    ? content.products.filter((p) => screenConfig.tickerProducts.includes(p.id))
-    : [...content.products.slice(7), ...content.products.slice(0, 7)];
+    ? products.filter((p) => screenConfig.tickerProducts.includes(p.id))
+    : [...products.slice(7), ...products.slice(0, 7)];
   return (
     <>
       {screenConfig && <ConfiguredAppearance config={screenConfig} />}
@@ -219,7 +305,7 @@ function Display() {
               animationStyle={screenConfig?.themeData.animationStyle}
               playlist={content.playlist}
               campaigns={content.campaigns}
-              products={content.products}
+              products={products}
               display={display}
               onStatus={onStatus}
             />
@@ -277,6 +363,13 @@ function Display() {
             <h1>{screenConfig.emergency.message}</h1>
           </div>
         )}
+      {websiteProductsEnabled &&
+        (catalogStatus.includes("unavailable") ||
+          catalogStatus.includes("last available")) && (
+          <div role="status" className="catalog-status">
+            {catalogStatus}
+          </div>
+        )}
       <AnimatePresence>
         {booting && (
           <motion.div
@@ -308,7 +401,11 @@ function Display() {
           <span>
             Network: {online ? "Online" : "Offline · local content available"}
           </span>
-          <span>Demo prices and availability</span>
+          <span>
+            {websiteProductsEnabled
+              ? catalogStatus
+              : "Demo prices and availability"}
+          </span>
         </aside>
       )}
     </>
