@@ -590,29 +590,48 @@ function ScreenDetail({
                 ))}
               </div>
             </div>
-            {(["featuredProducts", "tickerProducts"] as const).map((key) => (
-              <div className="product-assignment" key={key}>
-                <h3>
-                  {key === "featuredProducts"
-                    ? "Featured products"
-                    : "Ticker products"}{" "}
-                  <span>{config[key].length} selected</span>
-                </h3>
-                <div className="multi-checks">
-                  {db.collections.products.map((p) => (
-                    <label key={p.id}>
-                      <input
-                        type="checkbox"
-                        checked={config[key].includes(p.id)}
-                        disabled={!editable}
-                        onChange={() => toggleProduct(key, p.id)}
-                      />
-                      {p.name}
-                    </label>
-                  ))}
+            {(["featuredProducts", "tickerProducts"] as const).map((key) => {
+              const allIds = db.collections.products.map((p) => p.id);
+              const allSelected = allIds.every((id) =>
+                config[key].includes(id),
+              );
+              return (
+                <div className="product-assignment" key={key}>
+                  <h3>
+                    {key === "featuredProducts"
+                      ? "Featured products"
+                      : "Ticker products"}{" "}
+                    <span>{config[key].length} selected</span>
+                    <button
+                      className="btn small"
+                      disabled={!editable}
+                      style={{ marginLeft: "auto" }}
+                      onClick={() =>
+                        setConfig({
+                          ...config,
+                          [key]: allSelected ? [] : allIds,
+                        })
+                      }
+                    >
+                      {allSelected ? "Clear all" : "Select all products"}
+                    </button>
+                  </h3>
+                  <div className="multi-checks">
+                    {db.collections.products.map((p) => (
+                      <label key={p.id}>
+                        <input
+                          type="checkbox"
+                          checked={config[key].includes(p.id)}
+                          disabled={!editable}
+                          onChange={() => toggleProduct(key, p.id)}
+                        />
+                        {p.name}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </section>
         </div>
         <aside>
